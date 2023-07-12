@@ -20,7 +20,7 @@ The core routines are the layers in the stack:
 
 **network.c**      : Network layer, also should not need to be altered.
 
-**transport.c**    : Transport layer, just needs suitable routing to the application layer is a new protocol is used.  For instance the Power meter uses standard UDP packets which begin "POWE" and then conmtain the data.  This needs to be passed to a bespoke routine 'handlePower()'
+**transport.c**    : Transport layer, just needs suitable routing to the application layer is a new protocol is used.  For instance the Power meter uses standard UDP packets which begin "POWE" and then contain the data.  This needs to be passed to a bespoke routine 'handlePower()'
 
 ```c
 #ifdef POWER_METER // Message format is "POWER n" here n is an ASCII digit 0,1,2 etc
@@ -49,7 +49,7 @@ Some routines, e.g. **rtc.c**, **w25q.c** are optional for extra hardware module
 Some routines, e.g. **lfsr.c**, **sha256.c** are optional general purpose software modules.
 
 ## To compile
-Select the required solution in config.h.  There are 6 (mutually exclusive) examples at present.  Suitable code is selected if ATMEGA328 or ATMEGA32 macros are selected.
+Select the required solution in **config.h**.  There are 6 (mutually exclusive) examples at present.  Suitable code is selected if ATMEGA328 or ATMEGA32 macros are selected.
 Other microcontrollers will need to be set up as required.
 
 Macros must suit your hardware.  e.g. LEDON/LEDOFF may be:
@@ -58,7 +58,7 @@ Macros must suit your hardware.  e.g. LEDON/LEDOFF may be:
 #define LEDOFF PORTB|=(1<<PORTB1)  // LED on PORT B1
 #define LEDON  PORTB&=~(1<<PORTB1)
 ```
-or may be ignored : `#define LEDON ()`
+or may be ignored : `#define LEDON {}`.  Having a working LED is really useful for debugging a microcontroller though!
 
 Generally MAC addesses should be specified and be unique.  Using 'LOCAL_ADMIN' means it need not be globally registered
 
@@ -70,7 +70,17 @@ Generally MAC addesses should be specified and be unique.  Using 'LOCAL_ADMIN' m
 #define MAC_4  (0x70)
 #define MAC_5  (0x80)
 ```
-
+Specific protocols are enabled by uncommenting macros.  If a protocol needs TCP, the macro code will automatically enable TCP or vice-versa.
+```c
+//#define USE_SMTP         // TCP 
+//#define USE_POP3         // TCP
+  #define USE_DNS          
+//#define USE_NTP          // Usually off when debugging to avoid flooding
+  #define USE_HTTP         // TCP
+  #define USE_mDNS        
+  #define USE_LLMNR         
+  #define IMPLEMENT_PING     // Useful unless space critical
+```
 Specific hardware needs to be intialised.  Conditionally called from **main.c**, e.g.
 
 ```c
@@ -79,12 +89,16 @@ Specific hardware needs to be intialised.  Conditionally called from **main.c**,
 #endif
 ```
 
-A hostname should be set in **config.c**
+The macro `#define LITTLEENDIAN` is normal for Atmel microcontrollers.  Unsetting it should work for other big-endian CPUs but is **untested**.
+
+The macro `#define PROTECT_TCP` enables rejection of packets with malformed flags.  e.g. Can't have FIN set and ACK not.  Adds very little code, but is optional.
+
+A hostname should be set in **config.h** e.g. `#define HOSTNAME "iot-isp"` for the IoT In-System Programmer.
 
 And a suitable Init routine should be included in **init.c** (or a further file linked).   Again example initialisation routines for different scenarios exist in init.c.  They for instance set up the clock parameters for a given microcontroller; the SPI interface clock speed; or the IO status of pins as required for a given hardware configuration.
 
 You will either need the hash function files (**sha1.h, sha1.c** etc) from https://github.com/oilulio/Microcontroller-hashes in the same directory, connected by symbolic links, or to comment out the requirement for them.  Having them included does not increase code size if they are not called.
 
-Then run 'make' from the directory.  Files Net.elf, Net.hex will be created in the directory and object files in subdirectory obj.
+Then run `make` from the directory.  Files Net.elf, Net.hex will be created in the directory and object files in subdirectory obj.  `make install` will go further and download the code to the microcontroller (see Makefile - this assumes you have AVRDude installed in certain directories and working on a specified COM port)
 
-Dowload Net.hex to the suitably configured microcontroller board with a suitable programmer and suitable fuse settings and the device should run.  If it is on a network it can usually be pinged : ping hostname
+Dowload Net.hex to the suitably configured microcontroller board with a suitable programmer and suitable fuse settings and the device should run.  If it is on a LAN it can usually be pinged : `ping hostname` from Windows, `ping hostname.local` from linux.
