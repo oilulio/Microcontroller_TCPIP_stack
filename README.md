@@ -20,7 +20,7 @@ The core routines are the layers in the stack:
 
 **network.c**      : Network layer, also should not need to be altered.
 
-**transport.c**    : Transport layer, just needs suitable routing to the application layer is a new protocol is used.  For instance the Power meter uses standard UDP packets which begin "POWE" and then contain the data.  This needs to be passed to a bespoke routine 'handlePower()'
+**transport.c**    : Transport layer, just needs suitable routing to the application layer if a new protocol is used.  For instance the Power meter uses standard UDP packets which begin "POWE" and then contain the data.  This needs to be passed to a bespoke routine 'handlePower()'
 
 ```c
 #ifdef POWER_METER // Message format is "POWER n" here n is an ASCII digit 0,1,2 etc
@@ -60,7 +60,7 @@ Macros must suit your hardware.  e.g. LEDON/LEDOFF may be:
 ```
 or may be ignored : `#define LEDON {}`.  Having a working LED is really useful for debugging a microcontroller though!
 
-Generally MAC addesses should be specified and be unique.  Using 'LOCAL_ADMIN' means it need not be globally registered
+Generally MAC addesses should be specified and be unique.  Setting the LOCAL_ADMIN bit means it need not be globally registered
 
 ```c
 #define MAC_0  (LOCAL_ADMIN | 0x50)
@@ -102,3 +102,28 @@ You will either need the hash function files (**sha1.h, sha1.c** etc) from https
 Then run `make` from the directory.  Files Net.elf, Net.hex will be created in the directory and object files in subdirectory obj.  `make install` will go further and download the code to the microcontroller (see Makefile - this assumes you have AVRDude installed in certain directories and working on a specified COM port)
 
 Dowload Net.hex to the suitably configured microcontroller board with a suitable programmer and suitable fuse settings and the device should run.  If it is on a LAN it can usually be pinged : `ping hostname` from Windows, `ping hostname.local` from linux.
+
+## Hints and Tips
+
+It is difficult to debug a distributed device which depends on message exchange with servers (e.g. DHCP servers) and which has virtually no human-readable output beyond perhaps a LED.
+
+To facilitate some debugging, the user of a Network sniffer such as Wireshark is valuable.  That will help confirm normal operation and highlight errors.
+
+Then it is possible to check that a particular location in the code is reached after a given condition (e.g. HTTP request) and to extract some data by using a generic UDP broadcast e.g.
+
+```c
+buffer[0]='A'; // Any data to be extracted, bytewise input
+buffer[1]='B';
+buffer[2]='C';
+buffer[3]='D';
+buffer[4]='E';
+buffer[5]='F';
+
+genericUDPBcast((uint16_t *)buffer,6); // 6 is the payload length
+``` 
+
+buffer is a permanent general purpose scratch pad, accessed as required by `extern char buffer[MSG_LENGTH];`  MSG_LENGTH defined in config.h
+
+Wireshark (or similar) should then see a UDP packet from the devices IP address, sent to the LAN broadcast 255.255.255.255, and containing the data.
+
+There is a similar genericUDP() function that will send to a specific MAC address.  However that address must exist on the LAN or the automatic ARP preceding the send will fail.  With a suitable listener on that machine, significant data can be extracted.  This was partly how the hash routines were tested.
