@@ -1,7 +1,7 @@
 # Microcontroller-TCPIP-stack
 A size-optimised stack for (primarily Atmel/Arduino) microcontrollers with UDP and TCP, and zero configuration networking.
 
-Uses DHCP to obtain an IP address, or APIPA or a static IP address.
+Uses DHCP to obtain an IP address, or APIPA, or a static IP address.
 
 Is discoverable via zero-configuration protocols (LLMNR, mDNS).  
 
@@ -20,7 +20,7 @@ The core routines are the layers in the stack:
 
 **network.c**      : Network layer, also should not need to be altered.
 
-**transport.c**    : Transport layer, just needs suitable routing to the application layer if a new protocol is used.  For instance the Power meter uses standard UDP packets which begin "POWE" and then contain the data.  This needs to be passed to a bespoke routine 'handlePower()'
+**transport.c**    : Transport layer, just needs suitable routing to the application layer if a new protocol is used.  For instance the Power meter uses standard UDP packets to a defined port, and which begin "POWE" and then contain the requested ADC channel.  This needs to be passed to a bespoke routine 'handlePower()'
 
 ```c
 #ifdef POWER_METER // Message format is "POWER n" here n is an ASCII digit 0,1,2 etc
@@ -97,7 +97,7 @@ A hostname should be set in **config.h** e.g. `#define HOSTNAME "iot-isp"` for t
 
 And a suitable Init routine should be included in **init.c** (or a further file linked).   Again example initialisation routines for different scenarios exist in init.c.  They for instance set up the clock parameters for a given microcontroller; the SPI interface clock speed; or the IO status of pins as required for a given hardware configuration.
 
-You will either need the hash function files (**sha1.h, sha1.c** etc) from https://github.com/oilulio/Microcontroller-hashes in the same directory, connected by symbolic links, or to comment out the requirement for them.  Having them included does not increase code size if they are not called.
+You will either need the hash function files (**sha1.h, sha1.c** etc) from https://github.com/oilulio/Microcontroller-hashes in the same directory, connected by symbolic links, or to comment out the requirement for them.  Having them included does not increase code size if they are not called.  They are ready for future enhancements for RFC 7616 authorisation.
 
 Then run `make` from the directory.  Files Net.elf, Net.hex will be created in the directory and object files in subdirectory obj.  `make install` will go further and download the code to the microcontroller (see Makefile - this assumes you have AVRDude installed in certain directories and working on a specified COM port)
 
@@ -124,15 +124,15 @@ genericUDPBcast((uint16_t *)buffer,6); // 6 is the payload length
 
 buffer is a permanent general purpose scratch pad, accessed as required by `extern char buffer[MSG_LENGTH];`  MSG_LENGTH defined in config.h
 
-Wireshark (or similar) should then see a UDP packet from the devices IP address, sent to the LAN broadcast 255.255.255.255, and containing the data.
+Wireshark (or similar) should then see a UDP packet from the device's IP address, sent to the LAN broadcast 255.255.255.255, and containing the data.
 
-There is a similar genericUDP() function that will send to a specific MAC address.  However that address must exist on the LAN or the automatic ARP preceding the send will fail.  With a suitable listener on that machine, significant data can be extracted.  This was partly how the hash routines were tested.
+There is a similar genericUDP() function that will send to a specific IP address.  However that address must exist on the LAN or the automatic ARP preceding the send will fail.  With a suitable listener on that machine, significant data can be extracted.  This was partly how the hash routines were tested.
 
 The need to interleave #ifdefs through the code to select specific protocols or designs is cumbersome and switching protocols in and out of use makes testing difficult and there is a risk that creating a new device breaks an old one.
 
 ## Reference Designs
 
-An issue with Microcontroller software is that it can run on multiple devices (e.g. different versons of the MCU, such as Atmega8 and Atmega328p) with different fuse settings and hardware configurations.  This means the complete specification of a working design involves the software(firmware), the fuse settings and the hardware design (The same MCU may also appear in different physical packages (e.g. PDIP, TQFP)) These are refernces, however other designs may also work.
+An issue with Microcontroller software is that it can run on multiple devices (e.g. different versons of the MCU, such as Atmega8 and Atmega328p) with different fuse settings and hardware configurations.  This means the complete specification of a working design involves the software(firmware), the fuse settings and the hardware design (The same MCU may also appear in different physical packages (e.g. PDIP, TQFP)) These designs are references, however other designs may also work.
 
 The following are reference working designs to match the Microcontroller TCPIP stack software.
 
@@ -142,8 +142,9 @@ These are provided in good faith based on my notes, but cannot be guaranteed not
 
 This is exceptionally simple.  The reference design is for an Atmega 328p in a PDIP package, although it is likely a simpler Atmega 8 will work.
 
-The design is nothing more than a Atmega328p on a board with necessary reset circuitry.  The only other connections are:
+The design is nothing more than a Atmega328p on a board with necessary power smoothing and reset circuitry.  The only other connections are:
 
+```
 SPI SCK on MCU <-> SCK on ENC28J60 board
 
 SPI MOSI on MCU <-> MOSI on ENC28J60 board
@@ -151,12 +152,13 @@ SPI MOSI on MCU <-> MOSI on ENC28J60 board
 SPI MISO on MCU <-> MISO on ENC28J60 board
 
 SPI CS on MCU <-> CS on ENC28J60 board
+```
 
 And clearly the MCU and the ENC28J60 need power and earth.
 
 In addition, the clock input (PB6) on the MCU is fed from the ENC28J60, so no crystal is needed.  This means the fuses must reflect an external crystal source, and F_CPU is set as a divisor of that feed.  The file config.h reflects this.
 
-This is not necessary if the MCU board has its own clock crystal, but then fuses and config.h need to chnage.
+This is not necessary if the MCU board has its own clock crystal, but then fuses and config.h need to change.
 
 Then a (suitable bounded (e.g. 0-VCC)) input should feed the ADC0 (PC0) on the MCU.  This is pin 23 on the PDIP package.
 
@@ -170,6 +172,7 @@ This is a more complex design, but still relatively simple.  An Arduino Pro Mini
 
 As before:
 
+```
 SPI SCK on MCU <-> SCK on ENC28J60 board
 
 SPI MOSI on MCU <-> MOSI on ENC28J60 board
@@ -177,6 +180,7 @@ SPI MOSI on MCU <-> MOSI on ENC28J60 board
 SPI MISO on MCU <-> MISO on ENC28J60 board
 
 SPI CS on MCU <-> CS on ENC28J60 board
+```
 
 And clearly the MCU and the ENC28J60 need power and earth.
 
@@ -184,6 +188,7 @@ In addition, the 'to be programmed' MCU needs to be connected.  This is via the 
 
 All are on Port D, as defined by ISP_SEL_PORT
 
+```
 MOSI = PD3 (ISP_CONTROL_MOSI)
 
 MISO = PD7 (ISP_CONTROL_MISO)
@@ -191,6 +196,7 @@ MISO = PD7 (ISP_CONTROL_MISO)
 SCK  = PD6 (ISP_CONTROL_SCK)
 
 And CS is PD5 (ISP_SEL_PORT/ISP_SPI_SEL_CS)
+```
 
 Fuses used : L 0xDE, H 0xD6, E 0xFD.
 
