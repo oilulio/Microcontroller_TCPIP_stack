@@ -127,3 +127,75 @@ buffer is a permanent general purpose scratch pad, accessed as required by `exte
 Wireshark (or similar) should then see a UDP packet from the devices IP address, sent to the LAN broadcast 255.255.255.255, and containing the data.
 
 There is a similar genericUDP() function that will send to a specific MAC address.  However that address must exist on the LAN or the automatic ARP preceding the send will fail.  With a suitable listener on that machine, significant data can be extracted.  This was partly how the hash routines were tested.
+
+The need to interleave #ifdefs through the code to select specific protocols or designs is cumbersome and switching protocols in and out of use makes testing difficult and there is a risk that creating a new device breaks an old one.
+
+## Reference Designs
+
+An issue with Microcontroller software is that it can run on multiple devices (e.g. different versons of the MCU, such as Atmega8 and Atmega328p) with different fuse settings and hardware configurations.  This means the complete specification of a working design involves the software(firmware), the fuse settings and the hardware design (The same MCU may also appear in different physical packages (e.g. PDIP, TQFP)) These are refernces, however other designs may also work.
+
+The following are reference working designs to match the Microcontroller TCPIP stack software.
+
+These are provided in good faith based on my notes, but cannot be guaranteed not to contain errors. 
+
+### Power meter design
+
+This is exceptionally simple.  The reference design is for an Atmega 328p in a PDIP package, although it is likely a simpler Atmega 8 will work.
+
+The design is nothing more than a Atmega328p on a board with necessary reset circuitry.  The only other connections are:
+
+SPI SCK on MCU <-> SCK on ENC28J60 board
+
+SPI MOSI on MCU <-> MOSI on ENC28J60 board
+
+SPI MISO on MCU <-> MISO on ENC28J60 board
+
+SPI CS on MCU <-> CS on ENC28J60 board
+
+And clearly the MCU and the ENC28J60 need power and earth.
+
+In addition, the clock input (PB6) on the MCU is fed from the ENC28J60, so no crystal is needed.  This means the fuses must reflect an external crystal source, and F_CPU is set as a divisor of that feed.  The file config.h reflects this.
+
+This is not necessary if the MCU board has its own clock crystal, but then fuses and config.h need to chnage.
+
+Then a (suitable bounded (e.g. 0-VCC)) input should feed the ADC0 (PC0) on the MCU.  This is pin 23 on the PDIP package.
+
+ADC1 and ADC2 can also be used.  The software assumes that the feed repeats over a 50Hz cycle, but that is easily changed.
+
+Fuses used : L 0xFF, H 0xD9, E 0xFF.
+
+### Net programmer
+
+This is a more complex design, but still relatively simple.  An Arduino Pro Mini 328P, with integrated 16MHz crystal, is used.
+
+As before:
+
+SPI SCK on MCU <-> SCK on ENC28J60 board
+
+SPI MOSI on MCU <-> MOSI on ENC28J60 board
+
+SPI MISO on MCU <-> MISO on ENC28J60 board
+
+SPI CS on MCU <-> CS on ENC28J60 board
+
+And clearly the MCU and the ENC28J60 need power and earth.
+
+In addition, the 'to be programmed' MCU needs to be connected.  This is via the pins defined in config.h.  Currently:
+
+All are on Port D, as defined by ISP_SEL_PORT
+
+MOSI = PD3 (ISP_CONTROL_MOSI)
+
+MISO = PD7 (ISP_CONTROL_MISO)
+
+SCK  = PD6 (ISP_CONTROL_SCK)
+
+And CS is PD5 (ISP_SEL_PORT/ISP_SPI_SEL_CS)
+
+Fuses used : L 0xDE, H 0xD6, E 0xFD.
+
+The EEPROM must be programmed with the database of target MCUs.  The above fuses will ensure it is not erased on flashing.
+
+While a work in progress, it is expected the programmer will also have SPI connections to either its own flash memory (W25Q) or RAM (Microchip 23 series SRAM)
+
+
