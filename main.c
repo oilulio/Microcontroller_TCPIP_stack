@@ -97,28 +97,29 @@ Copyright (C) 2009-20  S Combes
 // https://www.kanda.com/blog/microcontrollers/avr-microcontrollers/atmel-studio-elf-production-files-avr/
 
 #ifdef NET_PROG
-FUSES = // For Atmega328p
+/*FUSES = // For Atmega328p
 {
-	.extended = 0x05,
-	.high     = 0xDE, 
+	.extended = 0xFD,
+	.high     = 0xD6, 
 	.low      = 0xDE
 };
-LOCKBITS =  (LB_MODE_1 & BLB0_MODE_1 & BLB1_MODE_1); // 0xFF = no protection
+LOCKBITS =  (LB_MODE_1 & BLB0_MODE_1 & BLB1_MODE_1); // 0xFF = no protection */
 
-/*
+
 typedef struct { // Microcontrollers that can be programmed, stored in EEPROM
   char         name[LONGEST_MICRO];
   ISP_chipData data;
-} ucData;*/
+} ucData;
 
-/*
+
   uint8_t vendor;
   uint8_t partFamily;
   uint8_t partCode;  // Signature bytes
   uint16_t sizeOfFlash;
   uint16_t flashPageSize;
   uint16_t sizeOfEEPROM;
-*/
+
+/*
 //                                                012345678901234  => LONGEST_MICRO=13 (incl /0)
 __attribute__((section(".eeprom"))) char name0[]="ATMega48p   ";  // Not tested, but should work by analogy Mega328p
 __attribute__((section(".eeprom"))) uint8_t  dat8_0 [] ={0x1E,0x92,0x0A};
@@ -139,8 +140,11 @@ __attribute__((section(".eeprom"))) uint16_t dat16_3[] ={0x8000,0x80,0x400};
 __attribute__((section(".eeprom"))) char name4[]="ATMega8      ";  // Not tested, probably won't work as different signals
 __attribute__((section(".eeprom"))) uint8_t  dat8_4 [] ={0x1E,0x93,0x07};
 __attribute__((section(".eeprom"))) uint16_t dat16_4[] ={0x1000,0x40,0x200};
-
+*/
 // KNOWN_PROGS=5 (in config.h)
+
+// note line below: eeprom_read_block((void*)buffer , (const void*)name0, 10); // Dummy to
+// prevent optimiser removing the eeprom data!
 
 #endif
 
@@ -332,7 +336,7 @@ while (TRUE) {   // Lets us do resets
   started=TRUE;
 #elif defined NET_PROG
   InitProgrammer();
-  eeprom_read_block((void*)buffer , (const void*)name0, 10); // Dummy to
+  // TODO eeprom_read_block((void*)buffer , (const void*)name0, 10); // Dummy to
   // prevent optimiser removing the eeprom data!
 #endif
 
@@ -516,7 +520,10 @@ TODO ****    if (MyState.TIME==TIME_WAIT_DNS) {
     if (MyState.TIME!=TIME_SET && MyState.TIME!=TIME_REQUESTED) { 
       queryNTP();  // Either launches a DNS or, if already know IP, a NTP packet
     } 
-    else if (MyState.TIME==TIME_SET && minute==0 &&
+    else if (MyState.TIME==TIME_SET && 
+#ifdef WHEREABOUTS // Not sure - minute may be used by others?
+                 minute==0 &&
+#endif
              ((time_now-time_set) > DAY_IN_SECONDS/25)) {
 
 //    else if (MyState.TIME==TIME_SET && (hour%12)==6 && 
