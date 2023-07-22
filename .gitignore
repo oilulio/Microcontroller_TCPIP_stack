@@ -8,4 +8,6 @@ ripemd160.c
 ripemd160.h
 hash.h
 *.bak
+*.elf
+*.hex
 obj/
