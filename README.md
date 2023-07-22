@@ -168,6 +168,10 @@ ADC1 and ADC2 can also be used.  The software assumes that the feed repeats over
 
 Fuses used : L 0xFF, H 0xD9, E 0xFF.
 
+Compiles (with LLMNR and mDNS) to 15112 bytes (46% of Atmega 328p) and 1032 bytes of data.
+
+
+
 ### Net programmer
 
 This is a more complex design, but still relatively simple.  An Arduino Pro Mini 328P, with integrated 16MHz crystal, is used.
