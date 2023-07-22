@@ -725,19 +725,21 @@ bdryLength=0;
 }
 // ----------------------------------------------------------------------------------
 void sendHTML(/*const*/ MergedPacket * Mash, uint16_t newData)
-{ // Routine called sendHTML because we are server, but we may not receive enough in
+{ // Routine called sendHTML because we are server.  So if we are asked to do something in HTTP it will
+  // be to reply (serve).  But we may not receive enough in
   // a given packet to go ahead and send, especially with POST.  But we will have ACK'd.
+
 
 #ifdef USE_LCD
 lcd_clrscr();
 #endif
 #ifdef AUTH7616
-uint8_t authPkt=FALSE;
+uint8_t authorisedPkt=FALSE;
 #else
-uint8_t authPkt=TRUE;  // No auth, implies all packets are OK
+uint8_t authorisedPkt=TRUE;  // No auth, implies all packets are OK
 #endif
 
-authPkt=TRUE; // TODO
+authorisedPkt=TRUE; // TODO
 
 if (!newData) return;  // Just an ACK
 
@@ -772,8 +774,7 @@ if (!(strncmp("POST ",Mash->HTTP,5))) { // Assume *** that this is in new packet
   //TODO w25SectorErase(((uint16_t)SLOT)<<12,SLOT<<4);
 }
 if (POSTflags) { // We are reading a POST
-
-  linkReadRandomAccess((uint16_t)(&Mash->HTTP[offset]-(char *)Mash));  
+  linkReadRandomAccess((uint16_t)(&Mash->TCP_payload.chars[offset]-(char *)Mash));  
   for (uint16_t indx=offset;indx<length;indx++) { // Starts at zero - will re-read 'POST ' - no harm, and 
     asm("WDR"); // Can be slow - so sort out WDT TODO ???
     // helps on next pkt which doesn't have POST preamble (if a continuation)
@@ -806,10 +807,10 @@ if (POSTflags) { // We are reading a POST
       uint8_t  byteCount=(hexDigit(ringBuffer[0])<<4)|hexDigit(ringBuffer[1]);
       uint16_t address  =(hexDigit(ringBuffer[4])<<4)|hexDigit(ringBuffer[5])|
                          (((uint16_t)hexDigit(ringBuffer[2]))<<12)|(((uint16_t)hexDigit(ringBuffer[3]))<<8);
-      uint8_t  type     =(hexDigit(ringBuffer[6])<<4)|hexDigit(ringBuffer[7]);
+      uint8_t  choice   =(hexDigit(ringBuffer[6])<<4)|hexDigit(ringBuffer[7]);
                     
       uint8_t csum=(hexDigit(ringBuffer[8+byteCount*2])<<4)|hexDigit(ringBuffer[9+byteCount*2]);
-      csum+=byteCount+address+(address>>8)+type; 
+      csum+=byteCount+address+(address>>8)+choice; 
       for (int i=0;i<byteCount;i++) {
         buffer[i]=(hexDigit(ringBuffer[8+i*2])<<4)|hexDigit(ringBuffer[9+i*2]);
         csum+=buffer[i];
@@ -817,8 +818,8 @@ if (POSTflags) { // We are reading a POST
 
       if (csum!=0) { /* HTTP_error("Invalid file"); */break; }      
       // Write to SPI RAM
-      if (type==0) memWriteBufferMemoryArray((uint32_t)address,(uint16_t)byteCount,(uint8_t *)buffer);
-      if (type==1) { // All read in so move to flash/eeprom
+      if (choice==0) memWriteBufferMemoryArray((uint32_t)address,(uint16_t)byteCount,(uint8_t *)buffer);
+      if (choice==1) { // All read in so move to flash/eeprom
 	    POSTflags=POST_NONE;
 		
 		uploadTo=EEPROM_UPLOAD; // TODO
@@ -880,7 +881,7 @@ if (POSTflags) { // We are reading a POST
 
 		return;
 	  }
-      else if (type!=0) break;  // Invalid file
+      else if (choice!=0) break;  // Invalid file
   
       bufferPtr=MAX_RING_BUFFER-1;  // Reset
       
@@ -992,10 +993,12 @@ if (POSTflags) { // We are reading a POST
 */
 #define ICON_BYTES (0x2868)
 
-} else if (!strncmp("GET ",Mash->HTTP,4))
-{ // It's a GET 
+// Odd Heisen bug - Sure Mash->HTTP was working before.  Mash->TCP_payload.chars is equivalent union.
 
-  if (!authPkt) {
+//} else if (!strncmp("GET ",Mash->HTTP,4))
+} else if (!strncmp("GET ",Mash->TCP_payload.chars,4)) 
+{ // It's a GET 
+  if (!authorisedPkt) {
     uint8_t len=4;      // Skip GET itself
     Mash->HTTP[3]=':';  // For Hash of method:uri
     #define MAX_URI (100) // Assume URI must fit in current pkt.  Reasonable (we define URIs)
@@ -1042,116 +1045,106 @@ SHA256Final(&context);
     }
   }
 //send401Unauthorised(); 
-  if ((length >= 15 && !caseFreeCompare("favicon.ico",&Mash->HTTP[5],11)) ||
-      (length >= 12 && !caseFreeCompare("icon.ico",&Mash->HTTP[5],8)))
+
+//  if ((length >= 15 && !caseFreeCompare("favicon.ico",&Mash->HTTP[5],11)) ||
+//      (length >= 12 && !caseFreeCompare("icon.ico",&Mash->HTTP[5],8)))
+  if ((length >= 15 && !caseFreeCompare("favicon.ico",&Mash->TCP_payload.chars[5],11)) ||
+      (length >= 12 && !caseFreeCompare("icon.ico",&Mash->TCP_payload.chars[5],8)))
   {
     HTTP_WITH_PREAMBLE_CACHE(TCP_SERVER,ISPbitmap);
   }
   //else if (length >= 12 && !caseFreeCompare(PSTR("isp0.png"),&Mash->HTTP[5],8)) // PSTR doesn't work
 #ifdef NET_PROG
-  else if (length >= 12 && !caseFreeCompare("isp9.bmp",&Mash->HTTP[5],8))
+  //else if (length >= 12 && !caseFreeCompare("isp9.bmp",&Mash->HTTP[5],8))
+  else if (length >= 12 && !caseFreeCompare("isp9.bmp",&Mash->TCP_payload.chars[5],8))
   {
     HTTP_WITH_PREAMBLE_CACHE(TCP_SERVER,ISPbitmap);
   }
 #endif
-  else if (Mash->HTTP[4]=='/') {  
+  else if (Mash->TCP_payload.bytes[4]=='/') {  
 // Seeking pattern "GET / ","GET \r","GET /index.html"
-    if (Mash->HTTP[5]==' ' || Mash->HTTP[5]=='\r' ||
-        !caseFreeCompare("index.html",&Mash->HTTP[5],10)) {
+    if (Mash->TCP_payload.bytes[5]==' ' || Mash->TCP_payload.bytes[5]=='\r' ||
+        !caseFreeCompare("index.html",&Mash->TCP_payload.chars[5],10)) {
       // Plain GET or GET/index.html (Do this first, so don't 
       // have to worry about length and reading dud data beyond end of packet).
       // Assume is it also possible to have "GET /\r\n" if there is no other header data.
 
-      #ifdef WHEREABOUTS
-       #define TOTAL_DATA (HEAD_LEN+3*12*(ITEM_LEN+ROWEND_LEN)+TAIL_LEN)
+#ifdef WHEREABOUTS
+#define TOTAL_DATA (HEAD_LEN+3*12*(ITEM_LEN+ROWEND_LEN)+TAIL_LEN)
         expectLen=TOTAL_DATA; // Tells preamble data the upcoming packet size
         TCP_ComplexDataOut(&MashE,TCP_SERVER,PreambleData(0,0,&dummy),&PreambleData,0,TRUE);
         TCP_ComplexDataOut(&MashE,TCP_SERVER,totalData,&WhereaboutsData,offset,TRUE);  
-      #endif
-      #ifdef HOUSE
+#endif
+#ifdef HOUSE
         HTTP_WITH_PREAMBLE(TCP_SERVER,HouseData);
-      #endif
-      #ifdef NET_PROG
+#endif
+#ifdef NET_PROG
+
         if (!ISPactivate()) {
           chipData.vendor=ISPgetSignature(SIG_BYTE_1);
           if (chipData.vendor==ATMEL) {
             chipData.partFamily=ISPgetSignature(SIG_BYTE_2);
             chipData.partCode  =ISPgetSignature(SIG_BYTE_3);
-			uint8_t i;
-			for (i=0;i<KNOWN_PROGS;i++) {
-			  if (eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+1))==chipData.partFamily &&
-			      eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+2))==chipData.partCode) {
-			    thisMicro=i;
-				for (uint8_t j=0;j<LONGEST_MICRO;j++) chipData.name[j]=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+j));
-				chipData.sizeOfFlash=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+4));
-				chipData.flashPageSize=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+6));
-				chipData.sizeOfEEPROM=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+8));
-				break;
-			  }
-		    }
-			if (i==KNOWN_PROGS) chipData.vendor=chipData.partFamily=chipData.partCode=ISP_UNKNOWN;
-			else {	 		
-              fuseL=ISPgetFuseBits();
-              fuseH=ISPgetHFuseBits();
-              fuseE=ISPgetEFuseBits();
-			}
+
+            /*uint8_t i;
+            for (i=0;i<KNOWN_PROGS;i++) {
+              if (eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+1))==chipData.partFamily &&
+                  eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+2))==chipData.partCode) {
+                thisMicro=i;
+              for (uint8_t j=0;j<LONGEST_MICRO;j++) chipData.name[j]=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+j));
+              chipData.sizeOfFlash=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+4));
+              chipData.flashPageSize=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+6));
+              chipData.sizeOfEEPROM=eeprom_read_byte((uint8_t *)(i*(9+LONGEST_MICRO)+LONGEST_MICRO+8));
+              break;
+              }
+            }
+            if (i==KNOWN_PROGS) chipData.vendor=chipData.partFamily=chipData.partCode=ISP_UNKNOWN;
+            else {	 		
+                    fuseL=ISPgetFuseBits();
+                    fuseH=ISPgetHFuseBits();
+                    fuseE=ISPgetEFuseBits();
+            } TODO REINSTATE */
           } else { // Not an Atmel chip
             chipData.vendor=chipData.partFamily=chipData.partCode=ISP_UNKNOWN;
           }
         } else {  // Could not activate
           chipData.vendor=chipData.partFamily=chipData.partCode=ISP_UNKNOWN;
         }
-		if (chipData.vendor==ISP_UNKNOWN) strcpy(chipData.name,"** UNKNOWN **");
-        ISPquiescent();          
-        HTTP_WITH_PREAMBLE(TCP_SERVER,ProgData);      
-      #endif
-    } else if (!caseFreeCompare("sig.html",&Mash->HTTP[5],8)) {  // TODO obsolete
-      // Want the AVR signature etc
-/*
-    uint8_t z;
-    for (z=0;z<100;z++) {
-
-      progress=z;
-
-      HTTP_WITH_PREAMBLE(TCP_SERVER,Progress);
-      asm("WDR"); // Can be slow - so sort out WDT
-      _delay_ms(200.0);
-    }
-*/
-
-
-	  
-    } else if (!caseFreeCompare("eeprom.html",&Mash->HTTP[5],11)) {
+        if (chipData.vendor==ISP_UNKNOWN) strcpy(chipData.name,"*UNKNOWN* ");
+            ISPquiescent();          
+            HTTP_WITH_PREAMBLE(TCP_SERVER,ProgData);      
+      } else if (!caseFreeCompare("eeprom.html",&Mash->TCP_payload.chars[5],11)) {
 #ifdef SOURCE_RAM
       ISP_EEPROMDataToRAM();
 #endif
       HTTP_WITH_PREAMBLE(TCP_SERVER,EEPROMData);
-    } else if (!caseFreeCompare("eeprom_p.html",&Mash->HTTP[5],11)) {
+    } else if (!caseFreeCompare("eeprom_p.html",&Mash->TCP_payload.chars[5],13)) {
 #ifdef SOURCE_RAM
       ISP_EEPROMDataToRAM();
 #endif
       HTTP_WITH_PREAMBLE(TCP_SERVER,EEPROMDataP);
-    } else if (!caseFreeCompare("flash.html",&Mash->HTTP[5],10)) {
+    } else if (!caseFreeCompare("flash.html",&Mash->TCP_payload.chars[5],10)) {
 #ifdef SOURCE_RAM
       ISP_FLASHDataToRAM();
 #endif
       HTTP_WITH_PREAMBLE(TCP_SERVER,FlashData);
-    } else if (!caseFreeCompare("erase",&Mash->HTTP[5],5)) { // TODO add confirm window
+    } else if (!caseFreeCompare("erase",&Mash->TCP_payload.chars[5],5)) { // TODO add confirm window
 	
-	  if (!caseFreeCompare(".html",&Mash->HTTP[10],5)) { // Ask to confirm
-	
-	    cfmnonce=Rnd8bit(); // Nonce
-		HTTP_WITH_PREAMBLE(TCP_SERVER,EraseCfm);
-	
-	  } else if (Mash->HTTP[10]==hex[cfmnonce>>4] && 
-	             Mash->HTTP[11]==hex[cfmnonce&0xF]) { 
+      if (!caseFreeCompare(".html",&Mash->TCP_payload.chars[10],5)) { // Ask to confirm
+    
+        cfmnonce=Rnd8bit(); // Nonce
+        HTTP_WITH_PREAMBLE(TCP_SERVER,EraseCfm);
+    
+      } else if (Mash->TCP_payload.bytes[10]==hex[cfmnonce>>4] && 
+                 Mash->TCP_payload.bytes[11]==hex[cfmnonce&0xF]) { 
         ISPactivate();
-	    ISPchipErase();
+        ISPchipErase();
         ISPquiescent();
         HTTP_WITH_PREAMBLE(TCP_SERVER,EraseData);
-		cfmnonce++; // won't repeat
-	  }
-	}
+        cfmnonce++; // won't repeat
+      }
+    }
+#endif 
     else { SEND_404; }
   } 
   else { SEND_404; }
@@ -1574,18 +1567,22 @@ if (((isecs>>24)&0xFF)>=128) time_now++;  // Just use the 1st byte - represents 
 
 protect_time=time_now - 12;  // allow time to be shown
 
+#ifdef WHEREABOUTS
 // If we are < 2 mins fast, just allow hands to catch up 
 // Note this calculation is unsigned.  Hence (correctly) only trips when actualy fast.  
 if ((time_set-time_now)<120) deferral=10+(uint8_t)((time_set-time_now)); // Play safe with 10s buffer
 else deferral=0;
+#endif
 
 time_set=time_now;  // Now record when I was actually set
 
 displayTime(time_now);
 TimeAndDate tad;
 tad=parseTime(time_now);
+#ifdef WHEREABOUTS
 hour=tad.hour;
 minute=tad.minute;
+#endif
 MyState.TIME=TIME_SET;
 }
 // ---------------------------------------------------------------------------------------
@@ -1616,7 +1613,7 @@ if (MyState.TIME==TIME_REQUESTED) return;  // In flight already
 
 MashE.NTP.Leap=0b11;
 MashE.NTP.Status=0x23;
-MashE.NTP.type=0;
+MashE.NTP.theType=0;
 MashE.NTP.precision=BYTESWAP16(0x04FA);
 MashE.NTP.estimated_error=0x01000100;  // Note endian change
 MashE.NTP.estimated_drift_rate=0;
@@ -2233,11 +2230,11 @@ static const char head[] PROGMEM={"<!DOCTYPE html><html xmlns=\"http://www.w3.or
 "<img src=\"isp3.png\"></td><td>"\
 "<img src=\"isp4.png\"></td><td>"\*/
 "<h2 class=\"c\">Networked/IoT In System/In Circuit Serial Programmer (ISP/ICSP) for Atmel devices</h2>"\
-"<p class=\"c\">v0.x by S Combes</p></td></tr></table>"\
-"<p class=\"c\">Microcontroller detected : "};
+"<p class=\"c\">v0.x (Work in progress) by S Combes</p></td></tr></table>"\
+"<p class=\"c\">Microcontroller detected "};
 
 static const char mid[] PROGMEM={
-"] <a href=\"/\">Refresh Signature</a></p>"\
+/*" <a href=\"/\">Refresh Signature</a></p>"\*/
 "<p class=\"c\">Fuse Bytes LOW-HIGH-EXT : "};
 
 static const char tail[] PROGMEM={
@@ -2514,6 +2511,8 @@ ISPactivate();
 
 uint16_t i=0;
 while (length-- && start<(sizeof(head)-1+sizeof(tail)-1+((chipData.sizeOfEEPROM)/BYTES_PER_LINE)*PR_LINE_LEN)) {
+
+
   if (start<(sizeof(head)-1)) {
     result[i++]=pgm_read_byte(&head[start++]);
   } else if (start<(sizeof(head)-1+((chipData.sizeOfEEPROM)/BYTES_PER_LINE)*PR_LINE_LEN)) {
@@ -2548,7 +2547,7 @@ while (length-- && start<(sizeof(head)-1+sizeof(tail)-1+((chipData.sizeOfEEPROM)
     start++;
   } else
     result[i++]=pgm_read_byte(&tail[(start++)-(sizeof(head)-1+((chipData.sizeOfEEPROM)/BYTES_PER_LINE)*PR_LINE_LEN)]);
-}
+} 
 #ifdef SOURCE_ISP
 ISPquiescent();
 #endif
