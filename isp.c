@@ -106,7 +106,7 @@ uint8_t ISPgetSignature(uint8_t sigid) { return sendCommand(ISP_READ_SIG,0x00,si
 // -----------------------------------------------------------------------------------
 uint8_t isReady() { return (sendCommand(0xF0,0x00,0x00)&0x01); } // LSb. Busy active LOW
 // -----------------------------------------------------------------------------------
-/*uint8_t ISP_Ready() { // External API
+uint8_t ISP_Ready() { // External API
   if (ISP_state==ISP_READY)   return TRUE;
   if (ISP_state==ISP_ERASING) {
     if (isReady()) {
@@ -114,13 +114,15 @@ uint8_t isReady() { return (sendCommand(0xF0,0x00,0x00)&0x01); } // LSb. Busy ac
       return TRUE;
     } else return FALSE;
   }
-}*/
+  return FALSE;
+}
 // -----------------------------------------------------------------------------------
 void pulseSCK() {
   
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_SCK); // Low to start
 asm("nop"); // Seems OK with no delay, but waste 2 cycles in case
 asm("nop"); // Will depend on relative speeds of clocks
+
 ISP_CONTROL_PORT|=(1<<ISP_CONTROL_SCK); // Pulse
 for (int i=0;i<20;i++) asm("nop");  // 6 too few, 10 OK, but will depend on relative clocks
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_SCK); // Low to end
@@ -240,7 +242,7 @@ while (TRUE) {
   if (rcvd!=0x53) {
     if (tries++>30) {  // Fail
       ISPquiescent();  // Make safe
-      return 1;
+      return TRUE;
     }
   }
   sendByte(ISP_DUMMY);
@@ -248,7 +250,7 @@ while (TRUE) {
   ISP_state=ISP_READY;
   break;           // Success
 }  
-return 0;  // SUCCESS
+return FALSE;  // SUCCESS
 }
 // -----------------------------------------------------------------------------------
 void ISPquiescent() {
