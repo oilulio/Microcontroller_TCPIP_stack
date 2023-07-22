@@ -1,0 +1,11 @@
+sha1.c
+sha1.h
+md5.c
+md5.h
+sha256.c
+sha256.h
+ripemd160.c
+ripemd160.h
+hash.h
+*.bak
+obj/
