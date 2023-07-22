@@ -40,7 +40,9 @@ Whereas the standard protocol bindings should not need to change (e.g)
 #endif
 ```
 
-**application.c** : This is where the majority of user changes are likely (although not in stock application layer routines like "queryNTP()" or "handleDNS()") whereas "sendHTML()" is the core routine for a server where it responds to an incoming request.
+**applicationCore.c** : Contains stock application layer routines like "queryNTP()" or "handleDNS()"
+
+**application.c** or **application[DeviceName].c** contains device-specific application layer material, e.g. "sendHTML()" is the core routine for a server where it responds to an incoming request.
 
 Some routines, e.g. **power.c**, **stepper.c** are bespoke to specific hardware finished products.
 
