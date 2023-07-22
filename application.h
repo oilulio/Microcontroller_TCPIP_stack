@@ -279,6 +279,7 @@ void sendHTML(MergedPacket * Mash, uint16_t length);
 void parseHTML(MergedPacket * Mash, uint16_t length);
 void GET_HTTP(void);
 void initiate_POP3(void);
+uint8_t hexDigit(char c);
 uint8_t summerTimeCorrection(uint8_t * hour, uint8_t * day, uint8_t * month, uint16_t * year);
 uint32_t getTime(uint8_t day, uint8_t month, uint16_t year,
                   uint8_t hour, uint8_t minute, uint8_t second);

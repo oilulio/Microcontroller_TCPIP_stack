@@ -42,6 +42,7 @@ SRAM than strcpy to buffer                     */
 #include "network.h"
 #include "stepper.h" 
 #include "link.h"
+#include "lfsr.h"
 
 static void learnMAC(IP4_address IP,MAC_address MAC);
 static int8_t knownMAC(const IP4_address * target);

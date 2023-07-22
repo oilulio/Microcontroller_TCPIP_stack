@@ -12,7 +12,7 @@ OBJDUMP = $(AVRPATH)\avr-objdump
 SIZE    = $(AVRPATH)\avr-size --format=avr --mcu=$(MCU)
 CFLAGS    = -Wall -Os -mmcu=$(MCU) -c -std=gnu99 -funsigned-char -funsigned-bitfields -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -gdwarf-2
 #-DF_CPU=$(CLK)
-SRCS = application.c lfsr.c init.c isp.c mem23SRAM.c w25q.c main.c network.c linkENC28J60.c transport.c md5.c ripemd160.c sha1.c sha256.c power.c
+SRCS = application.c applicationCore.c lfsr.c init.c isp.c mem23SRAM.c w25q.c main.c network.c linkENC28J60.c transport.c md5.c ripemd160.c sha1.c sha256.c power.c
 #where.c
 
 OBJS = $(patsubst %.c,obj/%.o,$(SRCS)) 
