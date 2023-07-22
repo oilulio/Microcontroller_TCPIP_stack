@@ -138,7 +138,7 @@ typedef struct { // DHCP message - note divergence from direct match to packet
 typedef struct { // NTP message : 48 bytes
     unsigned    Status           : 6;
     unsigned    Leap             : 2;
-    uint8_t     type;
+    uint8_t     theType;
     uint16_t    precision;
     uint32_t    estimated_error;
     uint32_t    estimated_drift_rate;

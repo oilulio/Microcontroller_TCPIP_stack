@@ -328,7 +328,7 @@
 
 
 #ifdef NET_PROG  //****************************************************************
-// An ATMega328-based device with a local ENC28J60 interface and SPI RAM memory
+// An ATMega328-based device with a local ENC28J60 interface and SPI RAM memory or
 // [W25Qxx flash memory]
 
   #define HOSTNAME "iot-isp"  // Length automatic (valid chars are letters, digits and '-')
@@ -345,7 +345,7 @@
   
 #define RAM_SPI_SEL_PORT       (PORTD)
 #define RAM_SPI_SEL_DDR        (DDRD)
-#define RAM_SPI_SEL_CS         (4)        
+#define RAM_SPI_SEL_CS         (4)
   
 #define ISP_SEL_PORT       (PORTD)
 #define ISP_SEL_DDR        (DDRD)
@@ -358,8 +358,8 @@
 #define ISP_CONTROL_MOSI  (3)
 #define ISP_CONTROL_SCK   (6)
     
-  //#define SOURCE_ISP (0)  // Do we read direct from ISP ...
-  #define SOURCE_RAM (1)  // ... or buffer via SPI RAM
+  #define SOURCE_ISP (0)  // Do we read direct from ISP ...
+  //#define SOURCE_RAM (1)  // ... or buffer via SPI RAM // TO DO DOESNT WORK YET
   
   #define MYID  (21645) // Useful if unique on LAN
   
@@ -368,7 +368,7 @@
   #define F_CPU 16000000UL  // 16 MHz. Allow to clash if F_CPU set in compiler so we get a warning
 
   #define USE_ENC28J60      // Set this if using the ENC28J60 chip (converse is ISA)
-  #define CLK_DIVISOR (2)  
+  //#define CLK_DIVISOR (2)
 
   #define TIME_START   (180) // Time fine tuning.  Overflows at 256, so this can control x->256
   #define DELAY_CALIBRATE (1.0) // Depends on clock. 1.0 correct for power meter at 12.5MHz
@@ -399,12 +399,12 @@
 
   //#define AUTH7616   // RFC 7616 authorisation
 
-  #define MAC_0  (LOCAL_ADMIN | 0x50)   // Make unique if more than one
+  #define MAC_0  (LOCAL_ADMIN | 0x30)   // Make unique if more than one
   #define MAC_1  (0x40)  
-  #define MAC_2  (0x52)  
-  #define MAC_3  (0x63)
-  #define MAC_4  (0x75)
-  #define MAC_5  (0x81)
+  #define MAC_2  (0x50)
+  #define MAC_3  (0x60)
+  #define MAC_4  (0x70)
+  #define MAC_5  (0x80)
   
   #define ICON_LEN (2453)
   

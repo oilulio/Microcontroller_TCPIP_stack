@@ -3,7 +3,7 @@ MCU = atmega328p
 #CLK = 16000000  
 # CLK usually defined in config.h
 AVRPATH=c:\WinAVR-20100110\bin
-COMPORT=COM4
+COMPORT=COM3
 
 CC = ${AVRPATH}\avr-gcc
 AVRDUDE = avrdude
