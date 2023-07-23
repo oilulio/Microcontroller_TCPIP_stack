@@ -258,3 +258,26 @@ timecount=0;
 delay_ms(1000);
 }
 #endif
+// ----------------------------------------------------------------------------
+#ifdef HELLO_HTTP_WORLD
+void InitHelloWorld()
+{
+myIP=MAKEIP4(192,168,0,139);  // Subject to DHCP  
+
+// Timer 0 - our internal clock
+// Timer prescaler = FCPU/1024
+TCCR0B|=(1<<CS02)|(1<<CS00);  
+
+TIMSK0|=(1<<TOIE0);  //Enable Overflow Interrupt Enable
+
+TCNT0 = (TIME_START);  // Initialize Counter - fine tuning
+
+linkInitialise(myMAC);
+delay_ms(150);
+
+sei();   
+timecount=0;
+
+delay_ms(1000);
+}
+#endif

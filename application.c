@@ -18,7 +18,7 @@ Copyright (C) 2009-23  S Combes
  
  1. FTP (Client sender only)  Partially written
  2. POP3  Partial written
- 3. HTTP (GET and POST) with RFC 7616 auth partilly writtem
+ 3. HTTP (GET and POST) with RFC 7616 auth partially written
 
  *********************************************/
 
@@ -85,8 +85,25 @@ extern uint16_t UDP_Port[MAX_UDP_PORTS];
 extern MergedPacket MashE;
 extern uint8_t fuseL,fuseH,fuseE;
 
+#ifdef AUTH7616
 extern uint8_t nonce;
 extern uint8_t opaque;
+#endif
+
+// ----------------------------------------------------------------------------------
+uint8_t caseFreeCompare(const char * s1,const char * s2, uint8_t len)
+{
+uint8_t i=0;
+while (len--) {
+  if (toupper(s1[i])!=toupper(s2[i])) return TRUE;
+  i++;
+} 
+return FALSE;
+}
+
+#ifdef HELLO_HTTP_WORLD 
+// Own file
+#else
 
 #ifdef NET_PROG
 uint8_t cfmnonce;  // make a new webpage for each erase to prevent bookmarking
@@ -103,17 +120,8 @@ extern uint8_t dummy;
 uint16_t expectLen;  // Special use - passing param to callback
 uint8_t progress;    // Special use - passing param to callback
 
-#ifdef USE_DHCP
-IP4_address myPreferredIP;
-uint8_t dhcp_option_overload;  
-#endif
-
 #ifdef USE_POP3
 uint8_t iPOP3_Connect; 
-#endif
-
-#ifdef USE_mDNS 
-extern IP4_address mDNS_IP4; 
 #endif
 
 #ifdef WHEREABOUTS
@@ -462,16 +470,6 @@ for (uint16_t k=0;k<65534;k++) {
 #endif
 //#endif
 // ----------------------------------------------------------------------------------
-uint8_t caseFreeCompare(const char * s1,const char * s2, uint8_t len)
-{
-uint8_t i=0;
-while (len--) {
-  if (toupper(s1[i])!=toupper(s2[i])) return TRUE;
-  i++;
-} 
-return FALSE;
-}
-// ----------------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------------
 #ifdef USE_FTP
@@ -706,7 +704,7 @@ uint16_t offset=length-newData;  // Position of first new data byte
 // clear what what we can do about that, given that we are code size limited, but do
 // inisit on what we expected and watch for buffer overflow.  TODO.  
   
-if (!(strncmp("POST ",Mash->HTTP,5))) { // Assume *** that this is in new packet TODO improve
+if (!(strncmp("POST ",Mash->TCP_payload.chars,5))) { // Assume *** that this is in new packet TODO improve
   POSTflags=POST_READING;
   uploadTo=0;
   
@@ -916,16 +914,16 @@ if (POSTflags) { // We are reading a POST
 /*
 
   i=0;
-  if (1==1) { //Mash->HTTP[i]=='/') {
+  if (1==1) { //Mash->TCP_payload.chars[i]=='/') {
     while ((++i)<newData) {
-      if (Mash->HTTP[i]=='\r' && Mash->HTTP[i+1]=='\n' && Mash->HTTP[i+2]=='\r' && Mash->HTTP[i+3]=='\n') {
+      if (Mash->TCP_payload.chars[i]=='\r' && Mash->TCP_payload.chars[i+1]=='\n' && Mash->TCP_payload.chars[i+2]=='\r' && Mash->TCP_payload.chars[i+3]=='\n') {
 
 
-  //      Mash->HTTP[i+4]=='R' && Mash->HTTP[i+5]=='=' && Mash->HTTP[i+10]=='R' && Mash->HTTP[i+11]=='=') {
+  //      Mash->TCP_payload.chars[i+4]=='R' && Mash->TCP_payload.chars[i+5]=='=' && Mash->TCP_payload.chars[i+10]=='R' && Mash->TCP_payload.chars[i+11]=='=') {
 
-        gis=((Mash->HTTP[i+6] -'0')*10+(Mash->HTTP[i+7] -'0'))%12;  // keep input valid with %12
-        ris=((Mash->HTTP[i+10]-'0')*10+(Mash->HTTP[i+11]-'0'))%12; 
-        fis=((Mash->HTTP[i+14]-'0')*10+(Mash->HTTP[i+15]-'0'))%12; 
+        gis=((Mash->TCP_payload.chars[i+6] -'0')*10+(Mash->TCP_payload.chars[i+7] -'0'))%12;  // keep input valid with %12
+        ris=((Mash->TCP_payload.chars[i+10]-'0')*10+(Mash->TCP_payload.chars[i+11]-'0'))%12; 
+        fis=((Mash->TCP_payload.chars[i+14]-'0')*10+(Mash->TCP_payload.chars[i+15]-'0'))%12; 
         if (lastMode==MODE_LAN) lastMode=MODE_OFF;  // Force a refresh
         TCP_SimpleDataOut(PSTR("HTTP/1.1 200 OK\r\nCache-control: no-cache,no-store\r\nConnection: close\r\nContent-Length: 1412\r\n\r\n"),TCP_SERVER);
         TCP_ComplexDataOut(&MashE,TCP_SERVER,0,OVERSIZE_WHERE); // Oversize method (uses gis,ris, which may have just changed)
@@ -933,7 +931,7 @@ if (POSTflags) { // We are reading a POST
       }
     }
   } else
-    TCP_SimpleDataOut(PSTR("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>Not found</h1></body></html>"),TCP_SERVER);
+    TCP_SimpleDataOut(PSTR("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>Not found</h1></body></html>"),TCP_SERVER,FALSE);
 */
 #define ICON_BYTES (0x2868)
 
@@ -944,13 +942,13 @@ if (POSTflags) { // We are reading a POST
 { // It's a GET 
   if (!authorisedPkt) {
     uint8_t len=4;      // Skip GET itself
-    Mash->HTTP[3]=':';  // For Hash of method:uri
+    Mash->TCP_payload.chars[3]=':';  // For Hash of method:uri
     #define MAX_URI (100) // Assume URI must fit in current pkt.  Reasonable (we define URIs)
-    while (len<MAX_URI && Mash->HTTP[len]!='\r') len++; // <200 to avoid overflow
+    while (len<MAX_URI && Mash->TCP_payload.chars[len]!='\r') len++; // <200 to avoid overflow
     if (len<MAX_URI) {     
 
       // First see if the nc is correct.
-      /*linkReadRandomAccess((uint16_t)(&Mash->HTTP[offset]-(char *)Mash));  // Position the read
+      /*linkReadRandomAccess((uint16_t)(&Mash->TCP_payload.chars[offset]-(char *)Mash));  // Position the read
       char c;
       while (TRUE) {
         do { c=linkNextByte(); } while (c!='n');
@@ -961,7 +959,7 @@ if (POSTflags) { // We are reading a POST
     
       SHA256_CTX context;  // Create H2 - hash of method and URI
       SHA256Init(&context);
-      SHA256Update(&context,Mash->HTTP,len);
+      SHA256Update(&context,Mash->TCP_payload.chars,len);
       SHA256Final(&context);
       memcpy(tmp,buffer,32);
       
@@ -985,7 +983,7 @@ SHA256Final(&context);
       //uint16_t cnon=len;
       
     
-      //AuthorisedSHA256(Mash->HTTP,cnonce,response);
+      //AuthorisedSHA256(Mash->TCP_payload.chars,cnonce,response);
     }
   }
 //send401Unauthorised(); 
@@ -997,7 +995,7 @@ SHA256Final(&context);
   {
     HTTP_WITH_PREAMBLE_CACHE(TCP_SERVER,ISPbitmap);
   }
-  //else if (length >= 12 && !caseFreeCompare(PSTR("isp0.png"),&Mash->HTTP[5],8)) // PSTR doesn't work
+  //else if (length >= 12 && !caseFreeCompare(PSTR("isp0.png"),&Mash->TCP_payload.chars[5],8)) // PSTR doesn't work
 #ifdef NET_PROG
   //else if (length >= 12 && !caseFreeCompare("isp9.bmp",&Mash->HTTP[5],8))
   else if (length >= 12 && !caseFreeCompare("isp9.bmp",&Mash->TCP_payload.chars[5],8))
@@ -1122,7 +1120,7 @@ static uint8_t possible_tag[MAX_TAGS];
 static uint8_t init=1;
 static uint8_t negate=FALSE;
 
-//strcpy(&Mash->HTTP[0],"The <head>  and </head> or <body> <style> and is");
+//strcpy(&Mash->TCP_payload.chars[0],"The <head>  and </head> or <body> <style> and is");
 
 if (init) 
 {
@@ -1151,7 +1149,7 @@ for (i=0;i<length;i++)
 //  sprintf(buffer,"%d",i);
  // lcd_puts(buffer);
 
-  if (Mash->HTTP[i]=='<')
+  if (Mash->TCP_payload.chars[i]=='<')
   {
     inbrace=TRUE;
     negate=FALSE;
@@ -1161,9 +1159,9 @@ for (i=0;i<length;i++)
 
   else if (inbrace) // Only relevant if within, and not just started
   {
-    if (Mash->HTTP[i] == '/' && inc==0) negate=TRUE; // and don't increment 'inc'
+    if (Mash->TCP_payload.chars[i] == '/' && inc==0) negate=TRUE; // and don't increment 'inc'
 
-    else if (Mash->HTTP[i] == ' ' || Mash->HTTP[i] == '>')
+    else if (Mash->TCP_payload.chars[i] == ' ' || Mash->TCP_payload.chars[i] == '>')
       for (j=0;j<MAX_TAGS;j++)
       {
         if (negate)
@@ -1178,7 +1176,7 @@ for (i=0;i<length;i++)
     {
       for (j=0;j<MAX_TAGS;j++)
       {
-        possible_tag[j] &= (ctag[j][inc] == Mash->HTTP[i]);
+        possible_tag[j] &= (ctag[j][inc] == Mash->TCP_payload.chars[i]);
       }
       inc++;
     }
@@ -1195,7 +1193,7 @@ for (i=0;i<length;i++)
 ignore = (!tag[HTML_HTML]) || tag[HTML_STYLE] || tag[HTML_HEAD] || tag[HTML_META] || (!tag[HTML_BODY]);
 // In HTML body, not a style, head or meta tag 
 
-if ((!ignore) && !inbrace) buffer[k++]=Mash->HTTP[i];
+if ((!ignore) && !inbrace) buffer[k++]=Mash->TCP_payload.chars[i];
 
 if (k==16)
 {
@@ -2900,5 +2898,6 @@ while (length--)
   
 return 9999; // TODO
 }
+#endif
 #endif
 // ----------------------------------------------------------------------------
