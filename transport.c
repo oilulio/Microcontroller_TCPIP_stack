@@ -2,7 +2,7 @@
 /*********************************************
  Code for Transport layer protocols UDP, TCP
  
-Copyright (C) 2009-20  S Combes
+Copyright (C) 2009-23 S Combes
 
 
     This program is free software: you can redistribute it and/or modify
@@ -169,7 +169,8 @@ uint16_t i=0;  // uint16 because could be up to 1460
 
 if (TCB[role].status != TCP_ESTABLISHED) return; // Fail
 
-while (pgm_read_byte(send) != 0x00) MashE.HTTP[i++]=pgm_read_byte(send++);
+char tmp;
+while ((tmp=pgm_read_byte(send++))) MashE.TCP_payload.chars[i++]=tmp;
 TCP_ComplexDataOut(&MashE,role,i,NULL,0,reTx);  // NULL=no callback
 }
 // ----------------------------------------------------------------------------
@@ -179,7 +180,7 @@ uint16_t i=0;  // uint16 because could be up to 1460
 
 if (TCB[role].status != TCP_ESTABLISHED) return; // Fail
 
-while (*send != 0x00) MashE.HTTP[i++]=*send++;
+while (*send) MashE.TCP_payload.chars[i++]=(*send++);
 TCP_ComplexDataOut(&MashE,role,i,NULL,0,reTx);  // NULL=no callback
 }
 // ----------------------------------------------------------------------------
@@ -196,13 +197,15 @@ uint8_t pendingReTx(const uint8_t * role)
 void TCP_DataIn(MergedPacket * Mash,const uint16_t newData,const uint8_t role)
 {  // newData is TCP data (not header) that we haven't heard before (on simple ACK=0)
 
-#ifdef USE_HTTP
+#ifdef IS_HTTP_CLIENT
 if (Mash->TCP.sourcePort==HTTP_SERVER_PORT && role==TCP_CLIENT)
 { 
   parseHTML(Mash,newData);
   return;
 }
+#endif
 
+#ifdef IS_HTTP_SERVER
 if (Mash->TCP.destinationPort==HTTP_SERVER_PORT && role==TCP_SERVER) 
 {
   sendHTML(Mash,newData);

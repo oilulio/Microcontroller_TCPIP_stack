@@ -73,8 +73,10 @@ extern TCP_TCB TCB[MAX_TCP_ROLES];
 extern uint16_t UDP_Port[MAX_UDP_PORTS];
 extern MergedPacket MashE;
 
+#ifdef AUTH7616
 uint8_t nonce[]={0,0,0,0};
 uint8_t opaque[]={0,0,0,0};
+#endif
 
 static const char myhost[]=HOSTNAME; 
 
@@ -107,6 +109,7 @@ uint16_t i=0;
   while ((length--) && start<sizeof(text)) result[i++]=pgm_read_byte(&text[start++]);
   return sizeof(text);  // sizeof(text)-1 should be right ... but doesn't work? TODO
 }
+#ifdef AUTH7616
 // ----------------------------------------------------------------------------------
 uint16_t UnauthorisedData(uint16_t start,uint16_t length,uint8_t * result) {
   
@@ -129,7 +132,7 @@ uint16_t UnauthorisedData(uint16_t start,uint16_t length,uint8_t * result) {
 void send401Unauthorised(void) {
   if (!(nonce[0]|nonce[1]|nonce[2]|nonce[3])) {
     nonce[0]=nextLFSR();
-    nonce[1]=nextLFSR(); 
+    nonce[1]=nextLFSR();
     nonce[2]=nextLFSR();
     nonce[3]=nextLFSR();
   }
@@ -142,6 +145,7 @@ void send401Unauthorised(void) {
   }
   TCP_ComplexDataOut(&MashE,TCP_SERVER,UnauthorisedData(0,0,&dummy),&UnauthorisedData,0,TRUE);
 }
+#endif
 #endif
 // ----------------------------------------------------------------------------------
 uint8_t hexDigit(char c) { // No checks - input =0..9A..F or a..f

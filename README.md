@@ -44,7 +44,7 @@ Whereas the standard protocol bindings should not need to change (e.g)
 
 **application.c** or **application[DeviceName].c** contains device-specific application layer material, e.g. "sendHTML()" is the core routine for a server where it responds to an incoming request.
 
-Some routines, e.g. **power.c**, **stepper.c** are bespoke to specific hardware finished products.
+Some routines, e.g. **power.c**, **stepper.c** are bespoke to specific hardware finished products.  **power.c** is a mix of an application layer protocol (handlePower()) and a supporting microcontroller routine (readADC())
 
 Some routines, e.g. **rtc.c**, **w25q.c** are optional for extra hardware modules used on various devices. 
 
@@ -74,11 +74,11 @@ Generally MAC addesses should be specified and be unique.  Setting the LOCAL_ADM
 ```
 Specific protocols are enabled by uncommenting macros.  If a protocol needs TCP, the macro code will automatically enable TCP or vice-versa.
 ```c
-//#define USE_SMTP         // TCP 
-//#define USE_POP3         // TCP
+//#define USE_SMTP         // TCP
+//#define USE_POP3         // TCP 
   #define USE_DNS          
 //#define USE_NTP          // Usually off when debugging to avoid flooding
-  #define USE_HTTP         // TCP
+  #define USE_HTTP         // TCP 
   #define USE_mDNS        
   #define USE_LLMNR         
   #define IMPLEMENT_PING     // Useful unless space critical
@@ -140,7 +140,7 @@ The following are reference working designs to match the Microcontroller TCPIP s
 
 These are provided in good faith based on my notes, but cannot be guaranteed not to contain errors. 
 
-### Power meter design
+### Power meter design : UDP only
 
 This is exceptionally simple.  The reference design is for an Atmega 328p in a PDIP package, although it is likely a simpler Atmega 8 will work.
 
@@ -171,8 +171,30 @@ Fuses used : L 0xFF, H 0xD9, E 0xFF.
 Compiles (with LLMNR and mDNS) to 15112 bytes (46% of Atmega 328p) and 1032 bytes of data.
 
 
+### HTTP Hello World : UDP and TCP.  HTTP server.
 
-### Net programmer
+This is effectively the same hardware design as the power meter, with no ADC input.  An Arduino Pro Mini 328P, with integrated 16MHz crystal, is used.
+
+As before:
+
+```
+SPI SCK on MCU <-> SCK on ENC28J60 board
+
+SPI MOSI on MCU <-> MOSI on ENC28J60 board
+
+SPI MISO on MCU <-> MISO on ENC28J60 board
+
+SPI CS on MCU <-> CS on ENC28J60 board
+```
+
+And clearly the MCU and the ENC28J60 need power and earth.
+
+Fuses used : L 0xDE, H 0xD6, E 0xFD.
+
+Compiles (with LLMNR and mDNS) to 19610 bytes (60% of Atmega 328p) and 1004 bytes of data.
+
+
+### Net programmer : UDP and TCP.  HTTP server.
 
 This is a more complex design, but still relatively simple.  An Arduino Pro Mini 328P, with integrated 16MHz crystal, is used.
 

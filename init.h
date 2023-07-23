@@ -22,3 +22,4 @@ void InitConsole(void);
 void InitEEPROM(void);
 void InitHouse(void);
 void InitProgrammer(void);
+void InitHelloWorld(void);

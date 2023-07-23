@@ -10,10 +10,11 @@
 
 // ----------- User settable ------ ONE only
 
+#define HELLO_HTTP_WORLD    // Minimal configuration for webserver
 //#define POWER_METER       // Set if hardware is the Clamp Meter
 //#define NETWORK_CONSOLE   // Hardware is console box
 //#define MSF_CLOCK         // When wired as a MSF clock on a Tuxgraphics board
-#define NET_PROG          // When a network programmer
+//#define NET_PROG          // When a network programmer
 //#define WHEREABOUTS       // Autoclock
 //#define HOUSE 
 
@@ -61,7 +62,6 @@
 //#define USE_POP3         // TCP
 //#define USE_DNS          
 //#define USE_NTP          
-//  #define USE_HTTP         // TCP
   #define IMPLEMENT_PING      // Useful unless space critical
 
   #define MAC_0  (LOCAL_ADMIN | 0)
@@ -112,7 +112,6 @@
 //#define USE_POP3         // TCP
   #define USE_DNS          // Needed for NTP
   #define USE_NTP          
-//  #define USE_HTTP         // TCP
   #define IMPLEMENT_PING      // Usefull unless space critical
 
   #define MAC_0  (LOCAL_ADMIN | 0)
@@ -165,7 +164,7 @@
 //#define USE_POP3         // TCP
   #define USE_DNS          // Needed for NTP
   #define USE_NTP          
-  #define USE_HTTP         // TCP
+  #define IS_HTTP_SERVER     // TCP
   #define USE_mDNS        
   #define USE_LLMNR       
   #define IMPLEMENT_PING      // Useful unless space critical
@@ -259,7 +258,7 @@
 //#define USE_POP3         // TCP
   #define USE_DNS          // Needed for NTP
   //#define USE_NTP          
-  #define USE_HTTP         // TCP
+  #define IS_HTTP_SERVER        // TCP
   #define USE_mDNS        
   #define USE_LLMNR       
   #define IMPLEMENT_PING      // Useful unless space critical
@@ -302,7 +301,7 @@
   #define USE_POP3         // TCP
   #define USE_DNS          
   #define USE_NTP          
-  #define USE_HTTP         // TCP
+  #define IS_HTTP_SERVER      // TCP
   #define IMPLEMENT_PING     // Usefull unless space critical
 
   #define PROTECT_TCP      // Safest, uses extra ?? bytes
@@ -392,7 +391,7 @@
 //#define USE_POP3         // TCP
   #define USE_DNS          
 //#define USE_NTP          // Usually off when debugging to avoid flooding
-  #define USE_HTTP         // TCP
+  #define IS_HTTP_SERVER         // TCP
   #define USE_mDNS        
   #define USE_LLMNR         
   #define IMPLEMENT_PING     // Useful unless space critical
@@ -410,7 +409,69 @@
   
 #endif
 
+#ifdef HELLO_HTTP_WORLD  //****************************************************************
+// A minimal ATMega328-based device with a local ENC28J60 interface
+
+  #define HOSTNAME "hello-world"  // Length automatic (valid chars are letters, digits and '-')
+    
+  #define MYID  (6167) // Useful if unique on LAN
+  
+  #define ATMEGA328     
+
+  #define F_CPU 16000000UL  // 16 MHz. Allow to clash if F_CPU set in compiler so we get a warning
+
+  #define USE_ENC28J60      // Set this if using the ENC28J60 chip (converse is ISA)
+  //#define CLK_DIVISOR (2)
+
+  #define TIME_START   (180) // Time fine tuning.  Overflows at 256, so this can control x->256
+  #define DELAY_CALIBRATE (1.0) // Depends on clock. 1.0 correct for power meter at 12.5MHz
+
+  #define LEDON  {}   // No LED
+  #define LEDOFF {}   // No LED
+  #define PROTECT_TCP      // Safest, uses extra ?? bytes
+  
+  #define USE_APIPA        // We are useful even without a DHCP server
+  #define USE_DHCP          
+  //#define STATIC_IP       
+  
+    #define OCT0 (192)  // required with STATIC_IP
+    #define OCT1 (168)  // We ASSUME submask=255.255.255.0
+    #define OCT2 (123)  // and GW=same as myIp with last octet=0
+    #define OCT3 (15)
+  
+//#define USE_MD5   
+  
+//#define USE_SMTP         // TCP 
+//#define USE_POP3         // TCP
+  #define USE_DNS          
+//#define USE_NTP          // Usually off when debugging to avoid flooding
+  #define IS_HTTP_SERVER         // TCP
+  #define USE_mDNS        
+  #define USE_LLMNR         
+  #define IMPLEMENT_PING     // Useful unless space critical
+
+  //#define AUTH7616   // RFC 7616 authorisation
+
+  #define MAC_0  (LOCAL_ADMIN | 0x32)   // Make unique if more than one
+  #define MAC_1  (0x42)  
+  #define MAC_2  (0x52)
+  #define MAC_3  (0x62)
+  #define MAC_4  (0x72)
+  #define MAC_5  (0x82)
+  
+#endif
+
+
 // Automatic
+
+#ifdef IS_HTTP_SERVER
+#define USE_HTTP
+#endif
+
+#ifdef IS_HTTP_CLIENT
+#define USE_HTTP
+#endif
+
 
 // Invoke TCP automatically if required by Application level protocols
 #ifdef USE_SMTP  

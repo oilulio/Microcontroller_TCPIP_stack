@@ -207,7 +207,7 @@ uint32_t gotweb=0;
 #endif
 
 // ----------------------------------------------------------------------------
-#if defined NETWORK_CONSOLE || defined MSF_CLOCK || defined WHEREABOUTS || defined HOUSE || defined NET_PROG
+#if defined NETWORK_CONSOLE || defined MSF_CLOCK || defined WHEREABOUTS || defined HOUSE || defined NET_PROG || defined HELLO_HTTP_WORLD
 ISR(TIMER0_OVF_vect)
 {  //CPU automatically calls when TIMER0 overflows.
 
@@ -312,6 +312,8 @@ while (TRUE) {   // Lets us do resets
   InitConsole();
 #elif defined HOUSE
   InitHouse();
+#elif defined HELLO_HTTP_WORLD
+  InitHelloWorld();
 #elif defined WHEREABOUTS
   lastMode=MODE_OFF; 
   delay_ms(400);

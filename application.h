@@ -266,7 +266,7 @@ typedef struct {  // Merges all structures.
                                 TCP_ComplexDataOut(&MashE,(X),expectLen,&FN,0,TRUE);})
 
 
-#define SEND_404 (HTTP_RAW(TCP_SERVER,HTTP_404))
+#define SEND_404 ({HTTP_RAW(TCP_SERVER,HTTP_404);TCP_FIN(Mash,TCP_SERVER);})
 
 
 // Function prototypes
