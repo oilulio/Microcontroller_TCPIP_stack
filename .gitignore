@@ -10,4 +10,10 @@ hash.h
 *.bak
 *.elf
 *.hex
+*.d
+*.o
+*.obj
+*.elf
+*.map
+*.lib
 obj/
