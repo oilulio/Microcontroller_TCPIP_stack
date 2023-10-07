@@ -86,6 +86,7 @@ Copyright (C) 2009-20  S Combes
 #include "network.h"
 #include "application.h"
 #include "where.h"
+#include "power.h"
 #include "lfsr.h"
 #include "link.h"
 #include "isp.h"
