@@ -61,6 +61,7 @@ void TCP_Endianism(MergedPacket * Mash);
 void UDP_Endianism(UDP_header * Header);
 
 // Local functions
+#ifdef USE_TCP
 static void cancelAckdReTx(const uint8_t * role);
 static void cancelAllReTx(const uint8_t * role);
 static void scheduleReTx(MergedPacket * Mash, uint16_t payloadLength, uint16_t headerLength, 
@@ -72,6 +73,7 @@ void TCP_SYN_ACK(MergedPacket * Mash, uint16_t sourcePort,
 void TCP_FIN(MergedPacket * Mash, uint8_t role);
 void launchTCP(MergedPacket * Mash, uint16_t payload_length, IP4_address * ToIP,
                void (* callback)(uint16_t start,uint16_t length,uint8_t * result),uint16_t offset);
+#endif
 // ----------------------------------------------------------------------------
 void MemOverflow()  { strcpy(buffer,"Malloc failed");  Error();  }
 
