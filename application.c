@@ -650,7 +650,7 @@ uint16_t i=0;
   return sizeof(head);  // sizeof(text)-1 should be right ... but doesn't work? TODO
 }
 // ----------------------------------------------------------------------------------
-uint8_t ringBufferCompare(uint8_t ptr,char * c1,uint8_t len) {  // Respects ring
+uint8_t ringBufferCompare(uint8_t ptr,const char * c1,uint8_t len) {  // Respects ring
   while (len--) {
     if (ringBuffer[ptr]!=*(c1++)) return TRUE;
     ptr=(ptr+1)%MAX_RING_BUFFER;
