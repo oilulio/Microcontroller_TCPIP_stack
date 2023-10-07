@@ -6,10 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <avr/interrupt.h>
-#include "net_config.h"
-//#include <util/delay.h> // after defintion of F_CPU
+#include "config.h"
+//#include <util/delay.h> // after definition of F_CPU
 #include "rtc.h"
-#include "lcd.h"
+//#include "lcd.h"
+#include "network.h"
 #include "application.h"
 
 extern char buffer[MSG_LENGTH];
