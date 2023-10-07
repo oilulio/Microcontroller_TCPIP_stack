@@ -224,6 +224,7 @@ ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_SCK); // Low to start
 
 ISP_CONTROL_DDR&=~(1<<ISP_CONTROL_MISO);   // MISO as input
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_MISO);  // No pullup (?)
+//ISP_CONTROL_PORT|=(1<<ISP_CONTROL_MISO);  // pullup (?)
 
 ISP_CONTROL_DDR|=(1<<ISP_CONTROL_MOSI);   // MOSI as output 
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_MOSI); // Low to start
@@ -231,9 +232,9 @@ ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_MOSI); // Low to start
 uint8_t tries=0;
 while (TRUE) {
   delay_ms(50);
-  ISP_CONTROL_PORT|=(1<<ISP_SPI_SEL_CS);  // Positive pulse on RESET now that SCK is clean (ATMega328p datasheet 25.8.2)
+  ISP_SEL_PORT|=(1<<ISP_SPI_SEL_CS);  // Positive pulse on RESET now that SCK is clean (ATMega328p datasheet 25.8.2)
   delay_ms(2);      // At least 2 clock cycles (AtMega8 datasheet)
-  ISP_CONTROL_PORT&=~(1<<ISP_SPI_SEL_CS);  
+  ISP_SEL_PORT&=~(1<<ISP_SPI_SEL_CS);  
   delay_ms(40);     // >20 ms required (AtMega8 datasheet)
   
   sendByte(0xAC);  
@@ -256,7 +257,7 @@ return FALSE;  // SUCCESS
 void ISPquiescent() {
   
 // Tristate everything - inputs without pullups
-// Target device will only reset if it has its own pull up circuit on reset.
+// Target device will only exit reset if it has its own pull up circuit on reset.
 // But it probably wouldn't work anyway if it didn't
 
 ISP_CONTROL_DDR&=~(1<<ISP_CONTROL_SCK);   
@@ -267,7 +268,8 @@ ISP_SEL_DDR&=~(1<<ISP_SPI_SEL_CS);
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_SCK);
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_MISO);
 ISP_CONTROL_PORT&=~(1<<ISP_CONTROL_MOSI);
-ISP_SEL_PORT&=~(1<<ISP_SPI_SEL_CS);
+
+ISP_SEL_PORT&=~(1<<ISP_SPI_SEL_CS); // Reset is active low.  Tristate, No pullup.
 
 ISP_state=ISP_QUIESCENT;
 }
