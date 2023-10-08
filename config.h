@@ -10,8 +10,8 @@
 
 // ----------- User settable ------ ONE only
 
-#define HELLO_HTTP_WORLD    // Minimal configuration for webserver
-//#define POWER_METER       // Set if hardware is the Clamp Meter
+//#define HELLO_HTTP_WORLD    // Minimal configuration for webserver
+#define POWER_METER       // Set if hardware is the Clamp Meter
 //#define NETWORK_CONSOLE   // Hardware is console box
 //#define MSF_CLOCK         // When wired as a MSF clock on a Tuxgraphics board
 //#define NET_PROG          // When a network programmer
@@ -112,7 +112,7 @@
 //#define USE_POP3         // TCP
   #define USE_DNS          // Needed for NTP
   #define USE_NTP          
-  #define IMPLEMENT_PING      // Usefull unless space critical
+  #define IMPLEMENT_PING      // Useful unless space critical
 
   #define MAC_0  (LOCAL_ADMIN | 0)
   #define MAC_1  (0x02)  // Changes these numbers for each instance
@@ -302,7 +302,7 @@
   #define USE_DNS          
   #define USE_NTP          
   #define IS_HTTP_SERVER      // TCP
-  #define IMPLEMENT_PING     // Usefull unless space critical
+  #define IMPLEMENT_PING     // Useful unless space critical
 
   #define PROTECT_TCP      // Safest, uses extra ?? bytes
 

@@ -17,3 +17,8 @@ hash.h
 *.map
 *.lib
 obj/
+.vs/
+Debug/
+*.atsln
+*.cproj
+*.componentinfo.xml
